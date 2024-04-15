@@ -2,7 +2,7 @@ from random import seed, randint
 from hashlib import sha256
 
 def getCryptionKey(key: bytes, length: int) -> bytes:
-    hashed_key = sha256(key).hexdigest().encode()
+    hashed_key = sha256(key.encode()).hexdigest().encode()
 
     seed(sum(hashed_key))
 

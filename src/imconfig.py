@@ -1,0 +1,4 @@
+CONFIG_PATH="src/config.json"
+CACHE_PATH="tmp/"
+UPSTREAM_FILE_SIZE=24.99 # MiB
+MAX_LOADED_RAM=5*10**8 # Bytes (=500MB)

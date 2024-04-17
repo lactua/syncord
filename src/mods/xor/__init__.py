@@ -1,1 +1,1 @@
-from .main import encrypt, decrypt
+from .main import make

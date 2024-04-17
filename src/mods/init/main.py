@@ -1,4 +1,4 @@
-from hashlib import sha256
+from hashlib import sha384
 from json import dumps, loads
 from requests import request
 from getpass import getpass
@@ -8,19 +8,24 @@ config = Config()
 
 def checkWebhook(url: str):
     conditions = [
-        url.startswith('https://discord.com/api/webhooks/') or url.startswith('https://discordapp.com/api/webhooks/'),
-        request('GET', url).status_code == 200
+    #    lambda: url.startswith('https://discord.com/api/webhooks/') or url.startswith('https://discordapp.com/api/webhooks/'),
+    #    lambda: request('GET', url).status_code == 200
     ]
-
-    return all(conditions)
+    
+    for condition in conditions:
+        if not condition():
+            return False
+    
+    return True
 
 def getUserData():
     while not checkWebhook(webhook_url := input('Webhook URL > ')):
         print('Invalid Webhook')
+
     config.set('webhook/url', webhook_url)
 
     vault_passkey = getpass('Vault passkey > ')
-    vault_passkey_hashed = sha256(vault_passkey.encode()).hexdigest()
+    vault_passkey_hashed = sha384(vault_passkey.encode()).hexdigest()
     config.set('vault/passkey_hash', vault_passkey_hashed)
 
 

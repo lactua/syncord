@@ -29,7 +29,7 @@ class Config:
         try:
             current = confs
             for key in keys:
-                current = current[key]
+                if key: current = current[key]
             
             return current
         except (KeyError, TypeError) as error:
@@ -43,6 +43,7 @@ class Config:
         
         current = confs
         for index, key in enumerate(keys):
+            if not key: continue
             if index == len(keys) - 1:
                 current[key] = value
             elif isinstance(current.get(key), dict):

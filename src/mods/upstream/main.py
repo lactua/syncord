@@ -1,12 +1,10 @@
-from time import time_ns
-from hashlib import sha256
-from random import shuffle, seed
+from hashlib import sha384
 from requests import request
-from os import remove
-from os.path import getsize
 from ..config import Config
-from ..xor import encrypt, decrypt
-from ...imconfig import UPSTREAM_FILE_SIZE, MAX_LOADED_RAM
+from ..cache import Cache
+from ..xor import make
+from ..compression import isCompressible, compressFile, decompressFile
+from ...imconfig import UPSTREAM_FILE_SIZE
 
 config = Config()
 webhook_url = config.get('webhook/url')
@@ -14,7 +12,7 @@ webhook_url = config.get('webhook/url')
 def checkPasskey(passkey: str) -> bool:
     correct_passkey_hash = config.get('vault/passkey_hash')
 
-    if sha256(passkey.encode()).hexdigest() == correct_passkey_hash:
+    if sha384(passkey.encode()).hexdigest() == correct_passkey_hash:
         return True
 
     return False
@@ -27,21 +25,26 @@ def askForPasskey() -> str:
     
     return passkey
 
+
 def upload(path: str, passkey: str = None) -> list[str]:
-    file_name = path.split('/')[-1]
-    tmp_path = f'tmp/{file_name}'
+    cache_file = Cache()
 
     if passkey:
         if not checkPasskey(passkey):
             passkey = askForPasskey()
     else: passkey = askForPasskey()
 
+    is_compressible = isCompressible(path)
+
+    if is_compressible:
+        print("Compressing...")
+        compressed_cache_file = Cache()
+        compressFile(path, compressed_cache_file.path)
+        path = compressed_cache_file.path
+
     print("Encrypting...")
 
-    with open(path, 'rb') as file:
-        while (chunk := file.read(MAX_LOADED_RAM)):
-            with open(tmp_path, 'ab') as cache_encrypted_file:
-                cache_encrypted_file.write(encrypt(passkey, chunk))
+    make(passkey.encode(), path, cache_file.path)
 
     print("Uploading...")
 
@@ -49,17 +52,48 @@ def upload(path: str, passkey: str = None) -> list[str]:
 
     ids = []
 
-    with open(tmp_path, 'rb') as file:
+    with open(cache_file.path, 'rb') as file:
         while (chunk := file.read(chunk_size)):
             res = request('POST', config.get('webhook/url'), files={'file':('syncord', chunk)})
             ids.append(res.json()['id'])
-
-    remove(tmp_path)
     
-    return ids
+    cache_file.delete()
+    if is_compressible: compressed_cache_file.delete()
 
-def download(ids: list[str], path: str, passkey: str = None) -> None:
-    
+    return {'ids': ids, 'compressed': is_compressible}
+
+def download(ids: list[str], path: str, passkey: str = None, compressed: bool=False) -> None:
+    cache_file = Cache()
+
+    if passkey:
+        if not checkPasskey(passkey):
+            passkey = askForPasskey()
+    else: passkey = askForPasskey()
+
+    print("Downloading...")
+
+    with open(cache_file.path, 'wb') as file:
+        for message in ids:
+            res = request('GET', f"{config.get('webhook/url')}/messages/{message}")
+            file_url = res.json()['attachments'][0]['url']
+            
+            res = request('GET', file_url)
+            file.write(res.content)
+
+    if compressed:
+        print("Decrypting...")
+        decrypted_cache_file = Cache()
+        make(passkey.encode(), cache_file.path, decrypted_cache_file.path)
+        cache_file.delete()
+        cache_file = decrypted_cache_file
+
+        print("Decompressing...")
+        decompressFile(cache_file.path, path)
+    else:
+        print("Decrypting...")
+        make(passkey.encode(), cache_file.path, path)
+
+    cache_file.delete()    
 
 
 def delete(): pass

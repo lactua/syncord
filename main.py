@@ -1,6 +1,9 @@
-from os import remove, listdir
-for file in listdir('.tmp'): remove(f'.tmp/{file}')
+from os import listdir, remove
+for file in listdir("./tmp"): remove("./tmp/"+file)
 
-from src.mods.init import init
-init()
-import src.mods.upstream
+from src.mods.upstream import upload, download
+
+res = upload('a.jpg', 'abc')
+ids = res['ids']
+compressed = res['compressed']
+download(ids, 'b.jpg', 'abc', compressed)

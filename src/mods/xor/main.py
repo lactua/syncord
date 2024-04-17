@@ -1,25 +1,21 @@
 from random import seed, randint
 from hashlib import sha256
 
-def getCryptionKey(key: bytes, length: int) -> bytes:
-    hashed_key = sha256(key.encode()).hexdigest().encode()
+class CryptionKey:
+    def __init__(self, key: bytes) -> None:
+        self.key = sha256(key).digest()
+        seed(self.key)
 
-    seed(sum(hashed_key))
+    def __iter__(self) -> None:
+        return self
+    
+    def __next__(self) -> bytes:
+        return randint(1, 255)
 
-    cryptionKey = bytes(randint(0,255) for _ in range(length))
+def make(key: bytes, file_path: str, dest_path: str) -> None:
+    hashed_key = sha256(key).digest()
+    cryption_key = CryptionKey(hashed_key)
 
-    return cryptionKey
-
-def encrypt(key: bytes, content: bytes) -> bytes:
-    cryption_key = getCryptionKey(key, len(content))
-
-    encrypted_content = bytes([c ^ k for c, k in zip(content, cryption_key)])
-
-    return encrypted_content
-
-def decrypt(key: bytes, encrypted_content: bytes) -> bytes:
-    cryption_key = getCryptionKey(key, len(encrypted_content))
-
-    content = bytes([e ^ k for e, k in zip(encrypted_content, cryption_key)])
-
-    return content
+    with open(file_path, 'rb') as file, open(dest_path, 'wb') as dest:
+        while (byte := file.read(1)):
+            dest.write(bytes([ord(byte) ^ next(cryption_key)]))

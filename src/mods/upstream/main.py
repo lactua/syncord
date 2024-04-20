@@ -1,12 +1,12 @@
 from hashlib import sha384
 from requests import request
-from ..config import Config
+from ..JSON import JSON
 from ..cache import Cache
 from ..xor import make
 from ..compression import isCompressible, compressFile, decompressFile
-from ...imconfig import UPSTREAM_FILE_SIZE
+from ...imconfig import UPSTREAM_FILE_SIZE, CONFIG_PATH
 
-config = Config()
+config = JSON(CONFIG_PATH)
 webhook_url = config.get('webhook/url')
 
 def checkPasskey(passkey: str) -> bool:
@@ -54,7 +54,7 @@ def upload(path: str, passkey: str = None) -> list[str]:
 
     with open(cache_file.path, 'rb') as file:
         while (chunk := file.read(chunk_size)):
-            res = request('POST', config.get('webhook/url'), files={'file':('syncord', chunk)})
+            res = request('POST', webhook_url, files={'file':('syncord', chunk)})
             ids.append(res.json()['id'])
     
     cache_file.delete()
@@ -74,7 +74,7 @@ def download(ids: list[str], path: str, passkey: str = None, compressed: bool=Fa
 
     with open(cache_file.path, 'wb') as file:
         for message in ids:
-            res = request('GET', f"{config.get('webhook/url')}/messages/{message}")
+            res = request('GET', f"{webhook_url}/messages/{message}")
             file_url = res.json()['attachments'][0]['url']
             
             res = request('GET', file_url)
@@ -96,4 +96,10 @@ def download(ids: list[str], path: str, passkey: str = None, compressed: bool=Fa
     cache_file.delete()    
 
 
-def delete(): pass
+def delete(ids: list[str]):
+    for message in ids:
+        request('DELETE', webhook_url)
+
+def edit(ids: list[str], path: str, passkey: str = None):
+    delete(ids)
+    upload(path, passkey)

@@ -1,10 +1,10 @@
-from typing import Union
+from typing import Any
 from json import load, dump
 from os.path import exists
 from ...imconfig import CONFIG_PATH
 
-class Config:
-    def __init__(self, path: str=CONFIG_PATH) -> None:
+class JSON:
+    def __init__(self, path: str) -> None:
         self.path = path
 
         if not exists(path):
@@ -36,7 +36,7 @@ class Config:
             print(error)
             return None
     
-    def set(self, path:str, value:Union[int, str, bool]=None):
+    def set(self, path: str, value: Any=None):
         confs = self._read()
 
         keys = path.split('/')

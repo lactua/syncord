@@ -2,14 +2,15 @@ from hashlib import sha384
 from json import dumps, loads
 from requests import request
 from getpass import getpass
-from ..config import Config
+from ..JSON import JSON
+from ...imconfig import CONFIG_PATH
 
-config = Config()
+config = JSON(CONFIG_PATH)
 
 def checkWebhook(url: str):
     conditions = [
-    #    lambda: url.startswith('https://discord.com/api/webhooks/') or url.startswith('https://discordapp.com/api/webhooks/'),
-    #    lambda: request('GET', url).status_code == 200
+        lambda: url.startswith('https://discord.com/api/webhooks/') or url.startswith('https://discordapp.com/api/webhooks/'),
+        lambda: request('GET', url).status_code == 200
     ]
     
     for condition in conditions:
@@ -29,7 +30,7 @@ def getUserData():
     config.set('vault/passkey_hash', vault_passkey_hashed)
 
 
-def generateWebhookTable():
+def genWebhookTable():
     pass
 
 def init():

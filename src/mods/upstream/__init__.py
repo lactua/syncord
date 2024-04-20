@@ -1,1 +1,1 @@
-from .main import upload, download, delete
+from .main import upload, download, delete, edit
